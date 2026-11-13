@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kelas 2 - Edukasi</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .nav-back { display: inline-block; margin-bottom: 15px; color: #2563eb; text-decoration: none; font-weight: bold; }
+        
+        /* Kotak Login Lisensi (Hanya muncul jika belum aktif) */
+        #authBox { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; margin-top: 40px; }
+        #authBox input { width: 80%; padding: 12px; font-size: 16px; border: 2px solid #d1d5db; border-radius: 8px; margin-bottom: 15px; text-align: center; text-transform: uppercase; font-weight: bold; }
+        #authBox button { background: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        
+        /* Konten Game (Hanya muncul setelah lisensi valid) */
+        #gameContent { display: none; }
+        .game-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+        .game-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; font-weight: bold; color: #1e3a8a; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="nav-back">← Kembali ke Menu Utama</a>
+
+        <!-- BAGIAN 1: FORM INPUT LISENSI KELAS 1 -->
+        <div id="authBox">
+            <h2>🔒 Akses Kelas 1 Terkunci</h2>
+            <p>Masukkan token lisensi Anda untuk membuka 20 game di Kelas 1:</p>
+            <input type="text" id="tokenInput" placeholder="CONTOH: KELAS-DEMO" autocomplete="off"><br>
+            <button onclick="verifyAndUnlock()">Aktifkan Lisensi</button>
+            <p id="errorMsg" style="color: red; font-size: 14px; margin-top: 10px;"></p>
+        </div>
+
+        <!-- BAGIAN 2: DAFTAR 20 GAME KELAS 1 (Tampil Setelah Terverifikasi) -->
+        <div id="gameContent">
+            <h1>🎮 Daftar Game Kelas 1</h1>
+            <p>Lisensi aktif! Pilih game di bawah ini:</p>
+            <div class="game-grid">
+                <div class="game-item">1. Berhitung Angka 1-10</div>
+                <div class="game-item">2. Mengenal Huruf Vokal</div>
+                <div class="game-item">3. Penjumlahan Dasar</div>
+                <div class="game-item">4. Tebak Nama Hewan</div>
+                <!-- Tambahkan sampai game ke-20 di sini -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASUKKAN URL WEB APP APPS SCRIPT ANDA DI BAWAH INI:
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJHuCs96VviaG3g1iKlbVYfxQXFn7d9xVfyvv7vBw5mpxOFsGX5sVl7LZNA4iYaziB1A/exec";
+        const KELAS_INI = ; // Ubah angka ini sesuai file (misal kelas-2.html jadi 2)
+
+        // Cek apakah lisensi Kelas 1 sudah pernah diaktifkan di HP ini
+        window.onload = function() {
+            let activeClasses = JSON.parse(localStorage.getItem("active_classes") || "[]");
+            if (activeClasses.includes(KELAS_INI)) {
+                bukaHalamanGame();
+            }
+        };
+
+        function getOrCreateDeviceID() {
+            let localDevID = localStorage.getItem("game_device_id");
+            if (!localDevID) {
+                let screenRes = window.screen.width + "x" + window.screen.height;
+                let randomString = Math.random().toString(36).substring(2, 10);
+                let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                localDevID = "DEV-" + screenRes + "-" + timeZone + "-" + randomString;
+                localStorage.setItem("game_device_id", localDevID);
+            }
+            return localDevID;
+        }
+
+        async function verifyAndUnlock() {
+            let token = document.getElementById("tokenInput").value.trim();
+            let errorP = document.getElementById("errorMsg");
+            if (!token) {
+                errorP.innerText = "Silakan masukkan token terlebih dahulu!";
+                return;
+            }
+
+            errorP.innerText = "Memverifikasi...";
+            let deviceID = getOrCreateDeviceID();
+
+            try {
+                let response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ token: token, device_id: deviceID })
+                });
+                let result = await response.json();
+
+                if (result.status === "success") {
+                    // Cek apakah token ini mencakup Kelas 1
+                    if (result.active_classes.includes(KELAS_INI)) {
+                        localStorage.setItem("active_classes", JSON.stringify(result.active_classes));
+                        bukaHalamanGame();
+                    } else {
+                        errorP.innerText = "Token valid, tetapi tidak mencakup akses untuk Kelas " + KELAS_INI;
+                    }
+                } else {
+                    errorP.innerText = result.message;
+                }
+            } catch (err) {
+                errorP.innerText = "Gagal terhubung ke server. Periksa internet.";
+                console.error(err);
+            }
+        }
+
+        function bukaHalamanGame() {
+            document.getElementById("authBox").style.display = "none";
+            document.getElementById("gameContent").style.display = "block";
+        }
+    </script>
+</body>
+</html>
